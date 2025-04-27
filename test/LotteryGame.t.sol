@@ -2,12 +2,10 @@
 pragma solidity ^0.8.17;
 
 import "forge-std/Test.sol";
-import "../src/SampleGame.sol"; // change SampleGame to LotteryGame
+import "../src/LotteryGame.sol"; // Changed to LotteryGame
 
-contract SampleGameTest is
-    Test // change SampleGame to LotteryGame
-{
-    SampleGame public game; // change SampleGame to LotteryGame
+contract LotteryGameTest is Test { // Changed to LotteryGame
+    LotteryGame public game; // Changed to LotteryGame
     address public owner;
     address public player1;
     address public player2;
@@ -24,7 +22,7 @@ contract SampleGameTest is
         vm.deal(player2, 1 ether);
         vm.deal(player3, 1 ether);
 
-        game = new SampleGame(); // change SampleGame to LotteryGame
+        game = new LotteryGame(); // Changed to LotteryGame
     }
 
     function testRegisterWithCorrectAmount() public {
@@ -32,14 +30,14 @@ contract SampleGameTest is
         game.register{value: 0.02 ether}();
 
         (uint256 attempts, bool active) = game.players(player1);
-        assertEq(attempts, 0);
+        assertEq(attempts, 2); // Player starts with 2 attempts
         assertTrue(active);
         assertEq(game.totalPrize(), 0.02 ether);
     }
 
     function testRegisterWithIncorrectAmount() public {
         vm.prank(player1);
-        vm.expectRevert("Please stake 0.02 ETH");
+        vm.expectRevert("Must send exactly 0.02 ETH");
         game.register{value: 0.01 ether}();
     }
 
@@ -52,7 +50,7 @@ contract SampleGameTest is
         game.guessNumber(5);
         vm.stopPrank();
 
-        // Check attempts were incremented
+        // Check attempts were decremented
         (uint256 attempts,) = game.players(player1);
         assertEq(attempts, 1);
     }
@@ -63,10 +61,10 @@ contract SampleGameTest is
         game.register{value: 0.02 ether}();
 
         // Try to guess with invalid numbers
-        vm.expectRevert("Number must be between 1 and 9");
+        vm.expectRevert("Guess must be between 1 and 9");
         game.guessNumber(0);
 
-        vm.expectRevert("Number must be between 1 and 9");
+        vm.expectRevert("Guess must be between 1 and 9");
         game.guessNumber(10);
 
         vm.stopPrank();
@@ -74,7 +72,7 @@ contract SampleGameTest is
 
     function testUnregisteredPlayerCannotGuess() public {
         vm.prank(player1);
-        vm.expectRevert("Player is not active");
+        vm.expectRevert("Player not registered");
         game.guessNumber(5);
     }
 
@@ -88,14 +86,14 @@ contract SampleGameTest is
         game.guessNumber(6);
 
         // Try to make a third guess
-        vm.expectRevert("Player has already made 2 attempts");
+        vm.expectRevert("No attempts left");
         game.guessNumber(7);
 
         vm.stopPrank();
     }
 
     function testDistributePrizesNoWinners() public {
-        vm.expectRevert("No winners to distribute prizes to");
+        vm.expectRevert("No winners to distribute prizes");
         game.distributePrizes();
     }
 }

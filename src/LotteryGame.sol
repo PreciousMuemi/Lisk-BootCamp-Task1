@@ -12,64 +12,89 @@ contract LotteryGame {
     }
 
     // TODO: Declare state variables
-    // - Mapping for player information
-    // - Array to track player addresses
-    // - Total prize pool
-    // - Array for winners
-    // - Array for previous winners
+       mapping(address => Player) public players;
+    address[] public playerAddresses;
+    uint256 public totalPrizePool;
+    address[] public winners;
+    address[] public previousWinners;
+
 
     // TODO: Declare events
-    // - PlayerRegistered
-    // - GuessResult
-    // - PrizesDistributed
+    event PlayerRegistered(address indexed player);
+    event GuessResult(address indexed player, bool success);
+    event PrizesDistributed(uint256 prizePerWinner);
+
 
     /**
      * @dev Register to play the game
      * Players must stake exactly 0.02 ETH to participate
      */
-    function register() public payable {
-        // TODO: Implement registration logic
-        // - Verify correct payment amount
-        // - Add player to mapping
-        // - Add player address to array
-        // - Update total prize
-        // - Emit registration event
+     function register() public payable {
+        require(msg.value == 0.02 ether, "Must stake exactly 0.02 ETH");
+        require(!players[msg.sender].active, "Already registered");
+
+        players[msg.sender] = Player({attempts: 2, active: true});
+        playerAddresses.push(msg.sender);
+        totalPrizePool += msg.value;
+
+        emit PlayerRegistered(msg.sender);
     }
 
     /**
      * @dev Make a guess between 1 and 9
      * @param guess The player's guess
      */
-    function guessNumber(uint256 guess) public {
-        // TODO: Implement guessing logic
-        // - Validate guess is between 1 and 9
-        // - Check player is registered and has attempts left
-        // - Generate "random" number
-        // - Compare guess with random number
-        // - Update player attempts
-        // - Handle correct guesses
-        // - Emit appropriate event
+       function guessNumber(uint256 guess) public {
+        require(guess >= 1 && guess <= 9, "Guess must be between 1 and 9");
+        require(players[msg.sender].active, "Not registered");
+        require(players[msg.sender].attempts > 0, "No attempts left");
+
+        uint256 randomNumber = _generateRandomNumber();
+        players[msg.sender].attempts -= 1;
+
+        if (guess == randomNumber) {
+            winners.push(msg.sender);
+            players[msg.sender].active = false; // Winner can't guess again
+            emit GuessResult(msg.sender, true);
+        } else {
+            emit GuessResult(msg.sender, false);
+        }
     }
+
 
     /**
      * @dev Distribute prizes to winners
      */
-    function distributePrizes() public {
-        // TODO: Implement prize distribution logic
-        // - Calculate prize amount per winner
-        // - Transfer prizes to winners
-        // - Update previous winners list
-        // - Reset game state
-        // - Emit event
+       function distributePrizes() public {
+        require(winners.length > 0, "No winners to distribute prizes");
+
+        uint256 prizePerWinner = totalPrize / winners.length;
+
+        for (uint256 i = 0; i < winners.length; i++) {
+            payable(winners[i]).transfer(prizePerWinner);
+            prevWinners.push(winners[i]);
+        }
+
+        // Reset game state
+        for (uint256 j = 0; j < playersArray.length; j++) {
+            delete players[playersArray[j]];
+        }
+        delete playersArray;
+        delete winners;
+        totalPrize = 0;
+
+        emit PrizesDistributed();
     }
+
 
     /**
      * @dev View function to get previous winners
      * @return Array of previous winner addresses
      */
-    function getPrevWinners() public view returns (address[] memory) {
-        // TODO: Return previous winners array
+      function getPrevWinners() public view returns (address[] memory) {
+        return prevWinners;
     }
+
 
     /**
      * @dev Helper function to generate a "random" number
